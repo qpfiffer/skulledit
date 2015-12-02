@@ -21,9 +21,9 @@ function love.load()
 end
 
 function love.keypressed(key)
-if key == "backspace" then
+    if key == "backspace" then
         local byteoffset = utf8.offset(skull_str, -1)
- 
+
         if byteoffset then
             skull_str = string.sub(skull_str, 1, byteoffset - 1)
         end
