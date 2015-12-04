@@ -2,6 +2,7 @@ local utf8 = require("utf8")
 skull_font_width = 12
 skull_font_height = 16
 skull_str = "0000FFFF \179 00:00 00:00 00:00 00:00 FF:FF FF:FF FF:FF FF:FF \179 ABCDABCDABCDABCD"
+skull_colors = "FFF FFF AAA AAA F65252 F65252 5a0000"
 shift_on = false
 
 max_rows = 25
