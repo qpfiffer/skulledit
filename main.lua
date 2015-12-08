@@ -1,8 +1,15 @@
 local utf8 = require("utf8")
 skull_font_width = 12
 skull_font_height = 16
-skull_str = "0000FFFF \179 00:00 00:00 00:00 00:00 FF:FF FF:FF FF:FF FF:FF \179 ABCDABCDABCDABCD"
-skull_colors = "FFF FFF AAA AAA F65252 F65252 5a0000"
+skull_str = "0000FFFF \179 00:00 00:00 00:00 00:00 FF:FF FF:FF FF:FF FF:FF \179 \0\1\2\3\4\5\6\7\8\9\10\11\12\13\14\15"
+-- White, light gray, dark gray, light red, dark red
+skull_pallette = {{255,255,255}, {170,170,170}, {85,85,85}, {255,82,82}, {170,0,0}}
+skull_colors = {1,1,0,0,3,3,4,4,0,4,0,
+                1,1,4,1,1,0,1,1,4,1,1,
+                0,2,2,4,2,2,0,2,2,4,2,2,0,
+                1,1,4,1,1,0,1,1,4,1,1,
+                0,2,2,4,2,2,0,2,2,4,2,2,
+                0,4,0,1,1,1,1,2,2,2,2,1,1,1,1,2,2,2,2}
 shift_on = false
 
 max_rows = 25
@@ -43,6 +50,7 @@ function love.load()
     skull_font = love.graphics.newImage("font.png")
     local width = (max_columns * skull_font_width) - (max_columns * kern_offset) + (padding_x * 3)
     local height = max_rows * skull_font_height
+    love.window.setTitle("Skulledit")
     love.window.setMode(width, height, {resizable=false, vsync=false})
 end
 
@@ -67,6 +75,9 @@ function love.draw()
         local coffset = 0
         local cur_iter = 0
         for c in skull_str:gmatch"." do
+            local current_color_idx = skull_colors[(cur_iter % table.getn(skull_colors)) + 1]
+            local current_color = skull_pallette[current_color_idx + 1]
+            love.graphics.setColor(current_color[1], current_color[2], current_color[3], 255)
             row_and_col = _row_and_column_for_char(c)
             skull_quad = _skull_quad(row_and_col[1], row_and_col[2])
             love.graphics.draw(skull_font, skull_quad, cur_iter * (skull_font_width - kern_offset) + padding_x, roffset * skull_font_width + (row_iter * 3) + padding_y, 0, 1, 1, 0, 0)
