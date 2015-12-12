@@ -47,6 +47,7 @@ function _row_and_column_for_char(char)
 end
 
 function love.load()
+    love.mouse.setVisible(false)
     skull_font = love.graphics.newImage("font.png")
     local width = (max_columns * skull_font_width) - (max_columns * kern_offset) + (padding_x * 3)
     local height = max_rows * skull_font_height
@@ -55,6 +56,9 @@ function love.load()
 end
 
 function love.keypressed(key)
+    if key == "escape" then
+        love.event.quit()
+    end
     if key == "backspace" then
         local byteoffset = utf8.offset(skull_str, -1)
 
