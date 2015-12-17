@@ -1,7 +1,7 @@
 local utf8 = require("utf8")
 skull_font_width = 12
 skull_font_height = 16
-skull_str = "0000FFFF \179 00:00 00:00 00:00 00:00 FF:FF FF:FF FF:FF FF:FF \179 \0\1\2\3\4\5\6\7\8\9\10\11\12\13\14\15"
+current_offset = 0
 -- White, light gray, dark gray, light red, dark red
 skull_pallette = {{255,255,255}, {170,170,170}, {85,85,85}, {255,82,82}, {170,0,0}}
 skull_colors = {1,1,0,0,3,3,4,4,0,4,0,
@@ -33,6 +33,31 @@ function range(from, to, step)
     end, nil, from - step
 end
 
+function _build_skull_str(row)
+    -- The current row we are computing:
+    base_number = current_offset + (16 * row)
+    offset_str = string.format("%08x", base_number)
+    base_string = offset_str
+    bytes_string = ""
+    values_str = ""
+    for i=0,15 do
+        char_int = file_data.byte(base_number + i + 1)
+        bytes_string = bytes_string .. string.format("%02x", char_int)
+        if i % 2 == 0 then
+            bytes_string = bytes_string .. ":"
+        else
+            bytes_string = bytes_string .. " "
+        end
+    end
+
+    -- I could do this better but I don't care right now.
+    for i=0,15 do
+        char_int = file_data.byte(base_number + i + 1)
+        values_str = values_str .. string.char(char_int)
+    end
+    --return 00:00 00:00 00:00 00:00 FF:FF FF:FF FF:FF FF:FF
+    return base_string .. " \179 ".. bytes_string .. "\179 " .. values_str
+end
 function _skull_quad(row, column)
     return love.graphics.newQuad(column * skull_font_width, row * skull_font_height + (3 * row),
         skull_font_width, skull_font_height, skull_font:getWidth(), skull_font:getHeight())
@@ -46,7 +71,18 @@ function _row_and_column_for_char(char)
     return {row, column}
 end
 
-function love.load()
+function load_file(file_to_open)
+    local inp = assert(io.open(file_to_open, "rb"))
+
+    file_data = inp:read("*all")
+    assert(inp:close())
+end
+
+function love.load(arg)
+    file_to_open = arg[2]
+
+    load_file(file_to_open)
+
     love.mouse.setVisible(false)
     skull_font = love.graphics.newImage("font.png")
     local width = (max_columns * skull_font_width) - (max_columns * kern_offset) + (padding_x * 3)
@@ -59,17 +95,26 @@ function love.keypressed(key)
     if key == "escape" then
         love.event.quit()
     end
-    if key == "backspace" then
-        local byteoffset = utf8.offset(skull_str, -1)
-
-        if byteoffset then
-            skull_str = string.sub(skull_str, 1, byteoffset - 1)
+    if key == "pagedown" then
+        current_offset = current_offset + (16 * max_rows)
+    end
+    if key == "pageup" then
+        current_offset = current_offset - (16 * max_rows)
+        if current_offset < 0 then
+            current_offset = 0
         end
     end
+    --if key == "backspace" then
+    --    local byteoffset = utf8.offset(_build_skull_str(), -1)
+
+    --    if byteoffset then
+    --        skull_str = string.sub(skull_str, 1, byteoffset - 1)
+    --    end
+    --end
 end
 
 function love.textinput(key)
-    skull_str = skull_str .. key
+    --skull_str = skull_str .. key
 end
 
 function love.draw()
@@ -78,7 +123,7 @@ function love.draw()
         local roffset = row_to_draw
         local coffset = 0
         local cur_iter = 0
-        for c in skull_str:gmatch"." do
+        for c in _build_skull_str(row_iter):gmatch"." do
             local current_color_idx = skull_colors[(cur_iter % table.getn(skull_colors)) + 1]
             local current_color = skull_pallette[current_color_idx + 1]
             love.graphics.setColor(current_color[1], current_color[2], current_color[3], 255)
