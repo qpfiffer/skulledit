@@ -4,22 +4,33 @@ skull_font_height = 16
 current_offset = 0
 -- White, light gray, dark gray, light red, dark red
 skull_pallette = {{255,255,255}, {170,170,170}, {85,85,85}, {255,82,82}, {170,0,0}}
-skull_colors = {1,1,0,0,3,3,4,4,0,4,0,
-                1,1,4,1,1,0,1,1,4,1,1,
-                0,2,2,4,2,2,0,2,2,4,2,2,0,
-                1,1,4,1,1,0,1,1,4,1,1,
-                0,2,2,4,2,2,0,2,2,4,2,2,
-                0,4,0,1,1,1,1,2,2,2,2,1,1,1,1,2,2,2,2}
+-- These colors are like the following:
+-- 0000000 | 11:22 33:44 aa:bb cc:dd 55:66 77:88 ee:ff gg:hh | 12345678911111
+skull_colors = {1,1,0,0,3,3,4,4,0,4,0, -- 00000000 | 
+                1,1,4,1,1,0,1,1,4,1,1, -- 31:32 33:34
+                0,2,2,4,2,2,0,2,2,4,2,2,0, -- 35:36 37:38
+                1,1,4,1,1,0,1,1,4,1,1, -- 39:40 41:42
+                0,2,2,4,2,2,0,2,2,4,2,2, -- 43:44 45:46
+                0,4,0,1,1,1,1,2,2,2,2,1,1,1,1,2,2,2,2} -- | 1234567891111111
 shift_on = false
 
 max_rows = 25
 kern_offset = 3
 max_columns = ((8) + 3 + (32 + 8 + 7) + 3 + (16))
 
+sx = 2
+sy = 2
+
 padding_x = 4
 padding_y = 4
 
-cursor_pos = {0, 0}
+cursor_x = 12
+cursor_y = 0
+cursor_color = skull_pallette[2]
+cursor_background_color = {0, 0, 0}
+
+global_coords_min_cursor_x = 12
+global_coords_max_cursor_x = 48
 
 function range(from, to, step)
     step = step or 1
@@ -85,8 +96,8 @@ function love.load(arg)
 
     love.mouse.setVisible(false)
     skull_font = love.graphics.newImage("font.png")
-    local width = (max_columns * skull_font_width) - (max_columns * kern_offset) + (padding_x * 3)
-    local height = max_rows * skull_font_height
+    local width = sx * (max_columns * skull_font_width) - (max_columns * kern_offset) + (padding_x * 3)
+    local height = sy * max_rows * skull_font_height
     love.window.setTitle("Skulledit")
     love.window.setMode(width, height, {resizable=false, vsync=false})
 end
@@ -104,6 +115,18 @@ function love.keypressed(key)
             current_offset = 0
         end
     end
+    if key == "up" then
+        cursor_y = cursor_y - 1
+    end
+    if key == "down" then
+        cursor_y = cursor_y + 1
+    end
+    if key == "left" then
+        cursor_x = cursor_x - 1
+    end
+    if key == "right" then
+        cursor_x = cursor_x + 1
+    end
     --if key == "backspace" then
     --    local byteoffset = utf8.offset(_build_skull_str(), -1)
 
@@ -118,6 +141,7 @@ function love.textinput(key)
 end
 
 function love.draw()
+    love.graphics.scale(sx, sy)
     local row_iter = 0
     for row_to_draw in range(0, max_rows) do
         local roffset = row_to_draw
@@ -126,10 +150,34 @@ function love.draw()
         for c in _build_skull_str(row_iter):gmatch"." do
             local current_color_idx = skull_colors[(cur_iter % table.getn(skull_colors)) + 1]
             local current_color = skull_pallette[current_color_idx + 1]
-            love.graphics.setColor(current_color[1], current_color[2], current_color[3], 255)
-            row_and_col = _row_and_column_for_char(c)
-            skull_quad = _skull_quad(row_and_col[1], row_and_col[2])
-            love.graphics.draw(skull_font, skull_quad, cur_iter * (skull_font_width - kern_offset) + padding_x, roffset * skull_font_width + (row_iter * 3) + padding_y, 0, 1, 1, 0, 0)
+            local draw_cursor = false
+
+            local row_and_col = _row_and_column_for_char(c)
+            local skull_quad = _skull_quad(row_and_col[1], row_and_col[2])
+
+            local x = cur_iter * (skull_font_width - kern_offset) + padding_x
+            local y = roffset * skull_font_width + (row_iter * 3) + padding_y
+
+            if cursor_y == row_iter and cursor_x == cur_iter then
+                draw_cursor = true
+                love.graphics.setBackgroundColor(cursor_background_color[1], cursor_background_color[2], cursor_background_color[3])
+                love.graphics.rectangle("fill", x, y, skull_font_width, skull_font_height)
+                love.graphics.setBackgroundColor(0, 0, 0)
+            else
+                draw_cursor = false
+            end
+
+            if draw_cursor == true then
+                love.graphics.setColor(cursor_color[1], cursor_color[2], cursor_color[3], 255)
+            else
+                love.graphics.setColor(current_color[1], current_color[2], current_color[3], 255)
+            end
+
+            love.graphics.draw(skull_font,
+                skull_quad,
+                x,
+                y,
+                0, 1, 1, 0, 0)
             cur_iter = cur_iter + 1
         end
         row_iter = row_iter + 1
